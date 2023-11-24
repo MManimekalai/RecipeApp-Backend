@@ -193,77 +193,78 @@ exports.shareRecipe = async (req, res) => {
     // Middleware to ensure authentication
     authMiddleware(req, res, async () => {
       const shareableLink = generateUniqueLink();
-    const { recipeId } = req.params;
-    const { user } = req;
-    const { recipient, method } = req.body;
+      const { recipeId } = req.params;
+      const { user } = req;
+      const { recipient, method } = req.body;
 
-    const recipe = await Recipe.findById(recipeId).populate('likes');
+      const recipe = await Recipe.findById(recipeId).populate('likes');
 
-    if (!recipe) {
-      return res.status(404).json({ message: 'Recipe not found' });
-    }
-
-    // Check the sharing method (email or in-built user)
-    // if (method === 'email') {
-    //   const mailOptions = {
-    //     from: 'your_email@gmail.com',
-    //     to: recipient,
-    //     subject: 'Recipe Sharing',
-    //     text: `Check out this amazing recipe: ${shareableLink}`
-    //   };
-
-    //   transporter.sendMail(mailOptions, (error, info) => {
-    //     if (error) {
-    //       console.error(error);
-    //       res.status(500).json({ message: 'Failed to send email', error: error.message });
-    //     } else {
-    //       console.log('Email sent: ' + info.response);
-    //       res.status(200).json({ message: 'Recipe shared successfully' });
-    //     }
-    //   });
-    //   await sendEmail(recipient, 'Recipe Shared', `Check out this recipe: ${recipe.title}`);
-    // } 
-    if (method === 'in-built') {
-      // Add logic to share with an in-built user
-      const recipientUser = await User.findOne({ Name: recipient });
-
-      if (!recipientUser) {
-        return res.status(404).json({ message: 'Recipient user not found' });
+      if (!recipe) {
+        return res.status(404).json({ message: 'Recipe not found' });
       }
 
-      // Update the recipient user's data as needed
-      // For example, add the shared recipe to the user's collection
-      await User.findByIdAndUpdate(recipientUser._id, { $addToSet: { recipes: recipeId } });
-    } else {
-      return res.status(400).json({ message: 'Invalid sharing method' });
-    }
+      // Check the sharing method (email or in-built user)
+      if (method === 'email') {
+        const mailOptions = {
+          from: 'your_email@gmail.com',
+          to: recipient,
+          subject: 'Recipe Sharing',
+          text: `Check out this amazing recipe: ${shareableLink}`
+        };
 
-    res.status(200).json({ message: 'Recipe shared successfully' });
-  })
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Failed to send email', error: error.message });
+          }
+
+          console.log('Email sent: 1', info.response);
+          res.status(200).json({ message: 'Recipe shared successfully' });
+
+          // Call sendEmail function with relevant information
+          sendEmail(recipient, shareableLink, 'Recipe Shared', recipe.title);
+        });
+      } else if (method === 'in-built') {
+        // Add logic to share with an in-built user
+        const recipientUser = await User.findOne({ Name: recipient });
+
+        if (!recipientUser) {
+          return res.status(404).json({ message: 'Recipient user not found' });
+        }
+
+        // Update the recipient user's data as needed
+        // For example, add the shared recipe to the user's collection
+        await User.findByIdAndUpdate(recipientUser._id, { $addToSet: { recipes: recipeId } });
+
+        res.status(200).json({ message: 'Recipe shared successfully' });
+      } else {
+        return res.status(400).json({ message: 'Invalid sharing method' });
+      }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to share recipe', error: error.message });
   }
 };
 
-// Hypothetical function to send email (replace with actual implementation)
-// const sendEmail = async (recipient) => {
-//   const shareableLink = generateUniqueLink();
+
+// const sendEmail = async (recipient, shareableLink, subject, content) => {
 //   const mailOptions = {
 //     from: process.env.EmailID,
 //     to: recipient,
-//     subject: 'Recipe Sharing',
+//     subject: subject,
 //     text: `Check out this amazing recipe: ${shareableLink}`,
 //   };
 
 //   try {
 //     const info = await transporter.sendMail(mailOptions);
-//     console.log('Email sent:', info.response);
+//     console.log('Email sent: 2', info.response);
 //   } catch (error) {
 //     console.error('Error sending email:', error);
 //     throw error;
 //   }
 // };
+
 
 exports.searchRecipes = async (req, res) => {
   console.log("getting into new search");
